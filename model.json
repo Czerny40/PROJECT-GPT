@@ -1,0 +1,5 @@
+{
+    "model_name": "gpt-4o-mini",
+    "temperature": 0.9,
+    "_type": "openai-chat"
+}
