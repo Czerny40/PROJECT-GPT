@@ -10,7 +10,16 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
 from langchain.callbacks.base import BaseCallbackHandler
 import streamlit as st
+import os
+from dotenv import load_dotenv
+from pathlib import Path
 
+current_dir = Path(__file__).resolve().parent
+root_dir = current_dir.parent
+env_path = root_dir / '.env'
+
+# .env 파일 로드
+load_dotenv(dotenv_path=env_path)
 
 # AI 응답을 실시간으로 표시하기 위한 콜백 핸들러
 class ChatCallbackHandler(BaseCallbackHandler):
@@ -45,14 +54,14 @@ if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
 # 파일 임베딩 함수
-@st.cache_data(show_spinner="파일을 분석하고있어요...")
+@st.cache_resource(show_spinner="파일을 분석하고있어요...")
 def embed_file(file):
     file_content = file.read()
     file_path = f"./.cache/files/{file.name}"
     with open(file_path, "wb") as f:
         f.write(file_content)
 
-    cache_dir = LocalFileStore("./.cache/embeddings/{file.name}")
+    cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
