@@ -33,7 +33,7 @@ class ChatCallbackHandler(BaseCallbackHandler):
 
 
 llm = ChatOllama(
-    model="mistral",
+    model="deepseek-r1:7b",
     temperature=0.2,
     streaming=True,
     callbacks=[
@@ -66,7 +66,7 @@ def embed_file(file):
     docs = file_loader.load_and_split(text_splitter=splitter)
 
     embeddings = OllamaEmbeddings(
-        model="mistral"
+        model="deepseek-r1:7b"
     )
 
     cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
