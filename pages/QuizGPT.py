@@ -225,14 +225,9 @@ else:
                 ],
                 index=None,
             )
-            isCorrect = False
-            if value:
-                isCorrect = {"answer": value[3:], "correct": True} in question[
-                    "answers"
-                ]
-            if isCorrect:
+            if {"answer": value, "correct": True} in question["answers"]:
                 st.success("✅ 정답입니다!")
-            elif value:
+            elif value is not None:
                 if switch:
                     correct_answer = find_correct_answer(question["answers"])
                     st.error(f"❌ 오답입니다. (정답: {correct_answer})")
