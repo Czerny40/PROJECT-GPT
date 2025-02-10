@@ -215,28 +215,28 @@ else:
         with st.sidebar:
             switch = st.toggle("정답보기")
 
-with st.form("questions_form"):
-    for idx, question in enumerate(response["questions"]):
-                value = st.radio(
-                    f"Q{idx+1}. {question['question']}",
-                    [
-                        f"{answer['answer']}"
-                        for index, answer in enumerate(question["answers"])
-                    ],
-                    index=None,
-                )
-                isCorrect = False
-                if value:
-                    isCorrect = {"answer": value[3:], "correct": True} in question[
-                        "answers"
-                    ]
-                if isCorrect:
-                    st.success("✅ 정답입니다!")
-                elif value:
-                    if switch:
-                        correct_answer = find_correct_answer(question["answers"])
-                        st.error(f"❌ 오답입니다. (정답: {correct_answer})")
-                    else:
-                        st.error("❌ 오답입니다.")
-                st.divider()
-    button = st.form_submit_button()
+    with st.form("questions_form"):
+        for idx, question in enumerate(response["questions"]):
+            value = st.radio(
+                f"Q{idx+1}. {question['question']}",
+                [
+                    f"{answer['answer']}"
+                    for index, answer in enumerate(question["answers"])
+                ],
+                index=None,
+            )
+            isCorrect = False
+            if value:
+                isCorrect = {"answer": value[3:], "correct": True} in question[
+                    "answers"
+                ]
+            if isCorrect:
+                st.success("✅ 정답입니다!")
+            elif value:
+                if switch:
+                    correct_answer = find_correct_answer(question["answers"])
+                    st.error(f"❌ 오답입니다. (정답: {correct_answer})")
+                else:
+                    st.error("❌ 오답입니다.")
+            st.divider()
+        button = st.form_submit_button()
