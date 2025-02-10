@@ -51,8 +51,6 @@ questions_prompt = ChatPromptTemplate.from_messages(
         Each question should have 4 answers, three of them must be incorrect and one should be correct.
             
         Use (o) to signal the correct answer.
-        
-        As a final step, translate the questions and answers you create into native Korean.
 
         Question examples:
             
@@ -85,114 +83,50 @@ formatting_prompt = ChatPromptTemplate.from_messages(
             """
     You are a powerful formatting algorithm.
      
-    You format exam questions into JSON format.
+    Your task is to:
+    1. Format exam questions into JSON format
+    2. Translate all content into native korean
     Answers with (o) are the correct ones.
      
-    Example Input:
+   Example Input:
     Question: What is the color of the ocean?
     Answers: Red|Yellow|Green|Blue(o)
-         
-    Question: What is the capital or Georgia?
-    Answers: Baku|Tbilisi(o)|Manila|Beirut
-         
-    Question: When was Avatar released?
-    Answers: 2007|2001|2009(o)|1998
-         
-    Question: Who was Julius Caesar?
-    Answers: A Roman Emperor(o)|Painter|Actor|Model
-    
      
-    Example Output:
+    Example Output for Korean:
      
     ```json
-    {{ "questions": [
+    {{
+        "questions": [
             {{
-                "question": "What is the color of the ocean?",
+                "question": "바다의 색은 무엇인가요?",
                 "answers": [
-                        {{
-                            "answer": "Red",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Yellow",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Green",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Blue",
-                            "correct": true
-                        }}
-                ]
-            }},
-                        {{
-                "question": "What is the capital or Georgia?",
-                "answers": [
-                        {{
-                            "answer": "Baku",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Tbilisi",
-                            "correct": true
-                        }},
-                        {{
-                            "answer": "Manila",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Beirut",
-                            "correct": false
-                        }}
-                ]
-            }},
-                        {{
-                "question": "When was Avatar released?",
-                "answers": [
-                        {{
-                            "answer": "2007",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "2001",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "2009",
-                            "correct": true
-                        }},
-                        {{
-                            "answer": "1998",
-                            "correct": false
-                        }}
-                ]
-            }},
-            {{
-                "question": "Who was Julius Caesar?",
-                "answers": [
-                        {{
-                            "answer": "A Roman Emperor",
-                            "correct": true
-                        }},
-                        {{
-                            "answer": "Painter",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Actor",
-                            "correct": false
-                        }},
-                        {{
-                            "answer": "Model",
-                            "correct": false
-                        }}
+                    {{
+                        "answer": "빨간색",
+                        "correct": false
+                    }},
+                    {{
+                        "answer": "노란색",
+                        "correct": false
+                    }},
+                    {{
+                        "answer": "초록색",
+                        "correct": false
+                    }},
+                    {{
+                        "answer": "파란색",
+                        "correct": true
+                    }}
                 ]
             }}
         ]
-     }}
+    }}
     ```
+
+    Important:
+    - First convert the input to JSON format
+    - Then translate all questions and answers to korean
+    - Maintain the same structure and correct answer indicators
+    
     Your turn!
     Questions: {context}
 """,
@@ -222,8 +156,32 @@ def split_file(file):
     return docs
 
 
+@st.cache_resource(show_spinner="퀴즈를 만들고있어요...")
+def run_quiz_chain(_docs, topic):
+    # questions_response = questions_chain.invoke(_docs)
+    # formatting_response = formatting_chain.invoke(
+    #     {"context": questions_response.content}
+    # )
+    chain = {"context": questions_chain} | formatting_chain | output_parser
+    return chain.invoke(_docs)
+
+
+@st.cache_resource(show_spinner="퀴즈를 만들고있어요...")
+def wiki_search(keyword):
+    retriever = WikipediaRetriever(top_k_results=3, lang="ko")
+    return retriever.get_relevant_documents(keyword)
+
+
+def find_correct_answer(answers):
+    for answer in answers:
+        if answer["correct"]:
+            return answer["answer"]
+    return None
+
+
 with st.sidebar:
     docs = None
+    topic = None
     choive = st.selectbox(
         "사용할 항목을 골라주세요.",
         ("File", "Wikipedia"),
@@ -238,9 +196,8 @@ with st.sidebar:
     else:
         topic = st.text_input("검색할 키워드를 입력해주세요.")
         if topic:
-            retriever = WikipediaRetriever(top_k_results=3, lang="ko")
-            with st.status("검색중이에요 잠시만 기다려주세요."):
-                docs = retriever.get_relevant_documents(topic)
+            docs = wiki_search(topic)
+
 
 if not docs:
     st.markdown(
@@ -253,15 +210,33 @@ if not docs:
     """
     )
 else:
+    response = run_quiz_chain(docs, topic if topic else file.name)
+    if response:
+        with st.sidebar:
+            switch = st.toggle("정답보기")
 
-    start = st.button("퀴즈 만들기")
-
-    if start:
-        with st.status("퀴즈를 만들고 있어요..."):
-            # questions_response = questions_chain.invoke(docs)
-            # formatting_response = formatting_chain.invoke(
-            #     {"context": questions_response.content}
-            # )
-            chain = {"context": questions_chain} | formatting_chain | output_parser
-            response = chain.invoke(docs)
-            st.write(response)
+with st.form("questions_form"):
+    for idx, question in enumerate(response["questions"]):
+                value = st.radio(
+                    f"Q{idx+1}. {question['question']}",
+                    [
+                        f"{answer['answer']}"
+                        for index, answer in enumerate(question["answers"])
+                    ],
+                    index=None,
+                )
+                isCorrect = False
+                if value:
+                    isCorrect = {"answer": value[3:], "correct": True} in question[
+                        "answers"
+                    ]
+                if isCorrect:
+                    st.success("✅ 정답입니다!")
+                elif value:
+                    if switch:
+                        correct_answer = find_correct_answer(question["answers"])
+                        st.error(f"❌ 오답입니다. (정답: {correct_answer})")
+                    else:
+                        st.error("❌ 오답입니다.")
+                st.divider()
+    button = st.form_submit_button()
