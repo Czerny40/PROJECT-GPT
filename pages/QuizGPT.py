@@ -46,7 +46,7 @@ questions_prompt = ChatPromptTemplate.from_messages(
             """
         You are a helpful assistant that is role playing as a teacher.
             
-        Based ONLY on the following context make 5 questions to test the user's knowledge about the text.
+        Based ONLY on the following context make 10 questions to test the user's knowledge about the text.
         
         Each question should have 4 answers, three of them must be incorrect and one should be correct.
             
@@ -156,7 +156,6 @@ def split_file(file):
     return docs
 
 
-@st.cache_resource(show_spinner="퀴즈를 만들고있어요...")
 def run_quiz_chain(_docs, topic):
     # questions_response = questions_chain.invoke(_docs)
     # formatting_response = formatting_chain.invoke(
@@ -210,7 +209,18 @@ if not docs:
     """
     )
 else:
-    response = run_quiz_chain(docs, topic if topic else file.name)
+    if "quiz_response" not in st.session_state:
+        st.session_state.quiz_response = run_quiz_chain(
+            docs, topic if topic else file.name
+        )
+
+    if st.button("문제 다시 생성"):
+        st.session_state.quiz_response = run_quiz_chain(
+            docs, topic if topic else file.name
+        )
+
+    response = st.session_state.quiz_response
+
     if response:
         with st.sidebar:
             switch = st.toggle("정답보기")
