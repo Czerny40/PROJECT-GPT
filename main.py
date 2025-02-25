@@ -12,6 +12,8 @@ ChatGPT를 이용한 다양한 서비스를 제공하고 있습니다.
 
 - [ ] [DocumentGPT](/DocumentGPT)
 - [ ] [PrivateGPT](/PrivateGPT)
+- [ ] [QuizGPT](/QuizGPT)
+- [ ] [SiteGPT](/SiteGPT)
 
 """
 )
