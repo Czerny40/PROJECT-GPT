@@ -5,11 +5,10 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import streamlit as st
 from langchain.retrievers import WikipediaRetriever
-from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain.schema import BaseOutputParser
 
-from utils.document_utils import save_uploaded_file, create_cache_dir, format_documents
-
+from utils.document_utils import save_uploaded_file, format_documents
+from utils.document_utils import create_text_splitter
 
 class JsonOutputParser(BaseOutputParser):
 
@@ -30,10 +29,6 @@ st.title("QuizGPT")
 llm = ChatOpenAI(
     model_name="gpt-4o-mini",
     temperature=0.2,
-    callbacks=[
-        StreamingStdOutCallbackHandler(),
-    ],
-    streaming=True,
 )
 
 questions_prompt = ChatPromptTemplate.from_messages(
@@ -43,7 +38,7 @@ questions_prompt = ChatPromptTemplate.from_messages(
             """
         You are a helpful assistant that is role playing as a teacher.
             
-        Based ONLY on the following context make 10 questions to test the user's knowledge about the text.
+        Based ONLY on the following context make 5 questions to test the user's knowledge about the text.
         
         Each question should have 4 answers, three of them must be incorrect and one should be correct.
             
@@ -138,12 +133,7 @@ formatting_chain = formatting_prompt | llm
 def split_file(file):
     file_path = save_uploaded_file(file, "quiz_files")
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        separators=["\n\n", "\n"],
-        length_function=len,
-    )
+    splitter = create_text_splitter()
 
     file_loader = UnstructuredFileLoader(file_path)
     docs = file_loader.load_and_split(text_splitter=splitter)
@@ -171,21 +161,23 @@ def find_correct_answer(answers):
 with st.sidebar:
     docs = None
     topic = None
-    choive = st.selectbox(
+    choice = st.selectbox(
         "사용할 항목을 골라주세요.",
         ("File", "Wikipedia"),
     )
-    if choive == "File":
+    if choice == "File":
         file = st.file_uploader(
             ".docx, .txt, .pdf 파일만 업로드해주세요.",
             type=["docx", "txt", "pdf"],
         )
         if file:
             docs = split_file(file)
+            source_id = f"file_{file.name}"
     else:
         topic = st.text_input("검색할 키워드를 입력해주세요.")
         if topic:
             docs = wiki_search(topic)
+            source_id = f"wiki_{topic}"
 
 
 if not docs:
@@ -199,17 +191,20 @@ if not docs:
     """
     )
 else:
-    if "quiz_response" not in st.session_state:
-        st.session_state.quiz_response = run_quiz_chain(
+    # 입력 소스에 따라 다른 세션 상태 키 사용
+    session_key = f"quiz_response_{source_id}"
+
+    if session_key not in st.session_state:
+        st.session_state[session_key] = run_quiz_chain(
             docs, topic if topic else file.name
         )
 
     if st.button("문제 다시 생성"):
-        st.session_state.quiz_response = run_quiz_chain(
+        st.session_state[session_key] = run_quiz_chain(
             docs, topic if topic else file.name
         )
 
-    response = st.session_state.quiz_response
+    response = st.session_state[session_key]
 
     if response:
         with st.sidebar:
