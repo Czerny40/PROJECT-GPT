@@ -8,6 +8,8 @@ from langchain.retrievers import WikipediaRetriever
 from langchain.callbacks import StreamingStdOutCallbackHandler
 from langchain.schema import BaseOutputParser
 
+from utils.document_utils import save_uploaded_file, create_cache_dir, format_documents
+
 
 class JsonOutputParser(BaseOutputParser):
 
@@ -33,11 +35,6 @@ llm = ChatOpenAI(
     ],
     streaming=True,
 )
-
-
-def format_documents(docs):
-    return "\n\n".join(document.page_content for document in docs)
-
 
 questions_prompt = ChatPromptTemplate.from_messages(
     [
@@ -139,10 +136,7 @@ formatting_chain = formatting_prompt | llm
 
 @st.cache_resource(show_spinner="파일을 분석하고있어요...")
 def split_file(file):
-    file_content = file.read()
-    file_path = f"./.cache/quiz_files/{file.name}"
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    file_path = save_uploaded_file(file, "quiz_files")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
@@ -157,10 +151,6 @@ def split_file(file):
 
 
 def run_quiz_chain(_docs, topic):
-    # questions_response = questions_chain.invoke(_docs)
-    # formatting_response = formatting_chain.invoke(
-    #     {"context": questions_response.content}
-    # )
     chain = {"context": questions_chain} | formatting_chain | output_parser
     return chain.invoke(_docs)
 

@@ -1,127 +1,20 @@
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import UnstructuredFileLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, CacheBackedEmbeddings
 from langchain.vectorstores import FAISS
-from langchain.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
-from langchain.storage import LocalFileStore
-from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain.prompts import ChatPromptTemplate
 import streamlit as st
-import os
-from dotenv import load_dotenv
-from pathlib import Path
 
-current_dir = Path(__file__).resolve().parent
-root_dir = current_dir.parent
-env_path = root_dir / '.env'
-
-# .env 파일 로드
-load_dotenv(dotenv_path=env_path)
-
-# AI 응답을 실시간으로 표시하기 위한 콜백 핸들러
-class ChatCallbackHandler(BaseCallbackHandler):
-
-    message = ""
-
-    def on_llm_start(self, *args, **kwargs):
-        # AI 응답 시작 시 빈 메시지 박스 생성
-        self.message_box = st.empty()
-
-    def on_llm_end(self, *args, **kwargs):
-        # AI 응답 완료 시 메시지 저장
-        save_message(self.message, "ai")
-
-    def on_llm_new_token(self, token: str, *args, **kwargs):
-        # 응답이 토큰로 생성될 때마다 실시간으로 화면에 표시
-        self.message += token
-        self.message_box.markdown(self.message)
-
-
-llm = ChatOpenAI(
-    model_name="gpt-4o-mini",
-    temperature=0.2,
-    streaming=True,
-    callbacks=[
-        ChatCallbackHandler(),
-    ],
+from utils.chat_utils import initialize_messages, send_message, load_chat_history
+from utils.callback_utils import ChatCallbackHandler
+from utils.document_utils import (
+    format_documents,
+    create_text_splitter,
+    save_uploaded_file,
+    create_cache_dir,
 )
-
-# 메시지 저장소 초기화
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-
-# 파일 임베딩 함수
-@st.cache_resource(show_spinner="파일을 분석하고있어요...")
-def embed_file(file):
-    file_content = file.read()
-    file_path = f"./.cache/files/{file.name}"
-    with open(file_path, "wb") as f:
-        f.write(file_content)
-
-    cache_dir = LocalFileStore(f"./.cache/embeddings/{file.name}")
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-        separators=["\n\n", "\n"],
-        length_function=len,
-    )
-
-    file_loader = UnstructuredFileLoader(file_path)
-    docs = file_loader.load_and_split(text_splitter=splitter)
-
-    embeddings = OpenAIEmbeddings(
-        model="text-embedding-3-small",
-    )
-
-    cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
-
-    vectorstore = FAISS.from_documents(docs, cached_embeddings)
-
-    vector_retriever = vectorstore.as_retriever(
-        search_type="mmr", # MMR(Maximum Marginal Relevance) : 검색 결과의 품질과 다양성을 동시에 고려
-        search_kwargs={
-            "k": 4,  # 검색할 문서 수
-            "fetch_k": 20,  # 후보 풀 크기
-            "lambda_mult": 0.7,  # 다양성 vs 관련성 가중치 (1에 가까울수록 관련성 중시)
-        },
-    )
-
-    # BM25 : 문서 검색을 위한 강력한 랭킹 알고리즘으로, 문서와 검색어 간의 관련성을 평가
-    bm25_retriever = BM25Retriever.from_documents(docs)
-    bm25_retriever.k = 4  # 검색할 문서 수
-
-    # 하이브리드 검색기 생성
-    ensemble_retriever = EnsembleRetriever(
-        retrievers=[bm25_retriever, vector_retriever],
-        weights=[0.5, 0.5],  # 각 검색기의 가중치
-    )
-
-    return ensemble_retriever
-
-# 메시지 표시 함수
-def send_message(message, role, save=True):
-    with st.chat_message(role):
-        st.markdown(message)
-    if save:
-        save_message(message, role)
-
-# 메시지 저장 함수
-def save_message(message, role):
-    st.session_state["messages"].append({"message": message, "role": role})
-
-# 채팅 기록 불러오기 함수
-def load_chat_history():
-    for message in st.session_state["messages"]:
-        send_message(message["message"], message["role"], save=False)
-
-
-def format_documents(docs):
-    return "\n\n".join(document.page_content for document in docs)
-
+from utils.retriever_utils import create_ensemble_retriever
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -140,6 +33,46 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{question}"),
     ]
 )
+
+llm = ChatOpenAI(
+    model_name="gpt-4o-mini",
+    temperature=0.2,
+    streaming=True,
+    callbacks=[
+        ChatCallbackHandler(),
+    ],
+)
+
+initialize_messages()
+
+
+@st.cache_resource(show_spinner="파일을 분석하고있어요...")
+def embed_file(file):
+    file_path = save_uploaded_file(file, "files")
+    cache_dir = create_cache_dir(file.name, "embeddings")
+
+    splitter = create_text_splitter()
+    file_loader = UnstructuredFileLoader(file_path)
+    docs = file_loader.load_and_split(text_splitter=splitter)
+
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+    )
+
+    cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
+
+    vectorstore = FAISS.from_documents(docs, cached_embeddings)
+    vector_retriever = vectorstore.as_retriever(
+        search_type="mmr",  # MMR(Maximum Marginal Relevance) : 검색 결과의 품질과 다양성을 동시에 고려
+        search_kwargs={
+            "k": 4,  # 검색할 문서 수
+            "fetch_k": 20,  # 후보 풀 크기
+            "lambda_mult": 0.7,  # 다양성 vs 관련성 가중치 (1에 가까울수록 관련성 중시)
+        },
+    )
+
+    return create_ensemble_retriever(vector_retriever, docs)
+
 
 st.set_page_config(
     page_title="DocumentGPT",
@@ -174,9 +107,7 @@ with st.sidebar:
     )
 
 if file:
-
     retriever = embed_file(file)
-
     send_message("무엇이든 물어보세요!", "ai", save=False)
     load_chat_history()
     message = st.chat_input("업로드한 문서에 대해 무엇이든 물어보세요")

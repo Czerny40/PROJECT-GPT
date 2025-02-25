@@ -5,8 +5,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import ChatPromptTemplate
-from langchain.callbacks.base import BaseCallbackHandler
 import streamlit as st
+
+from utils.chat_utils import initialize_messages, send_message, load_chat_history, save_message
+from utils.callback_utils import ChatCallbackHandler
 
 answer_prompt = ChatPromptTemplate.from_template(
     """
@@ -50,7 +52,6 @@ choose_prompt = ChatPromptTemplate.from_messages(
         ("human", "{question}"),
     ]
 )
-
 
 def get_answers(input):
     docs = input["docs"]
@@ -137,53 +138,25 @@ def load_website(url):
     )
     return vector_store.as_retriever()
 
+llm = ChatOpenAI(
+    model_name="gpt-4o-mini",
+    temperature=0.2,
+    streaming=True,
+    callbacks=[ChatCallbackHandler()],
+)
 
-class ChatCallbackHandler(BaseCallbackHandler):
-
-    message = ""
-
-    def on_llm_start(self, *args, **kwargs):
-        self.message_box = st.empty()
-        self.message = ""
-
-    def on_llm_end(self, *args, **kwargs):
-        save_message(self.message, "ai")
-
-    def on_llm_new_token(self, token: str, *args, **kwargs):
-        self.message += token
-        self.message_box.markdown(self.message)
-
-
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-
-
-def send_message(message, role, save=True):
-    with st.chat_message(role):
-        st.markdown(message)
-    if save:
-        save_message(message, role)
-
-
-def save_message(message, role):
-    st.session_state["messages"].append({"message": message, "role": role})
-
-
-def load_chat_history():
-    for message in st.session_state["messages"]:
-        send_message(message["message"], message["role"], save=False)
-
+initialize_messages()
 
 st.set_page_config(
     page_title="SiteGPT",
     page_icon="🖥️",
 )
 
+st.title("SiteGPT")
+
 
 st.markdown(
-    """
-    # SiteGPT
-            
+    """          
     Ask questions about the content of a website.
             
     Start by writing the URL of the website on the sidebar.
@@ -193,7 +166,7 @@ st.markdown(
 
 with st.sidebar:
     url = st.text_input(
-        "Write down a URL",
+        "Write down a URL(.xml)",
         placeholder="https://example.com",
     )
 
@@ -207,12 +180,6 @@ if url:
         load_chat_history()
         query = st.chat_input("웹사이트에 대해 궁금한 점을 물어보세요")
 
-        llm = ChatOpenAI(
-            model_name="gpt-4o-mini",
-            temperature=0.2,
-            streaming=True,
-            callbacks=[ChatCallbackHandler()],
-        )
         retriever = load_website(url)
 
 
@@ -232,3 +199,5 @@ if url:
                 st.markdown(response)
 
             save_message(response, "ai")
+else:
+    st.session_state["messages"] = []
