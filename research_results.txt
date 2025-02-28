@@ -1,0 +1,34 @@
+# XZ Backdoor (CVE-2024-3094) Research
+
+## Overview
+In February 2024, a malicious backdoor was introduced to the Linux build of the xz utility within the liblzma library in versions 5.6.0 and 5.6.1 by an account using the name "Jia Tan". This backdoor allows an attacker who possesses a specific Ed448 private key to execute remote code on the affected Linux system. The vulnerability has been assigned the Common Vulnerabilities and Exposures (CVE) number CVE-2024-3094 and has a CVSS score of 10.0, the highest possible score.
+
+## Discovery
+The backdoor was discovered by software developer Andres Freund, who announced his findings on March 29, 2024. It was reported that the backdoor had not yet been widely deployed to production systems but was present in development versions of major Linux distributions.
+
+## Technical Details
+The backdoor works by modifying the behavior of the SSH server binary (sshd). When a malicious version of the xz-utils library is installed, a malicious shared object (SO) file is stored on disk. This SO file is loaded by the sshd binary when it starts, allowing the backdoor to hijack a specific OpenSSL function, RSA_public_decrypt. This enables an attacker with knowledge of the specific private SSH key to execute arbitrary code on the machine while preserving the usual functionality of SSH.
+
+### Affected Distributions
+The backdoor was packaged in several Linux distributions, including:
+- Fedora Linux 40 beta and Fedora Rawhide
+- Debian unstable, testing, and experimental
+- Kali Linux
+- Arch Linux (specific VM and container images)
+
+However, it was noted that the backdoor had not been packaged in widely used distributions such as Ubuntu or Amazon Linux.
+
+## Response and Mitigation
+The U.S. Cybersecurity and Infrastructure Security Agency (CISA) has recommended organizations downgrade to a previous non-compromised version of XZ Utils. Users can check if their system is affected by running `xz --version` and looking for versions 5.6.0 or 5.6.1.
+
+## Historical Context
+The XZ backdoor is part of a broader trend of supply chain attacks targeting open-source software. Historical examples include attempts to backdoor the Linux Kernel and other significant software projects.
+
+## Conclusion
+The XZ backdoor represents a sophisticated supply chain attack, likely state-sponsored, that has raised significant concerns within the cybersecurity community. Ongoing investigations are expected to reveal more about the nature and origins of this threat.
+
+## Sources
+1. [Wikipedia - XZ Utils backdoor](https://en.wikipedia.org/wiki/XZ_Utils_backdoor)
+2. [Datadog Security Labs - The XZ Utils backdoor (CVE-2024-3094)](https://securitylabs.datadoghq.com/articles/xz-backdoor-cve-2024-3094/)
+3. [NVD - CVE-2024-3094](https://nvd.nist.gov/vuln/detail/CVE-2024-3094)
+4. [Microsoft FAQ and guidance for XZ Utils backdoor](https://techcommunity.microsoft.com/blog/vulnerability-management/microsoft-faq-and-guidance-for-xz-utils-backdoor/4101961)
