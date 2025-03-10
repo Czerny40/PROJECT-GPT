@@ -1,6 +1,6 @@
 from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import UnstructuredFileLoader
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
@@ -46,7 +46,15 @@ def embed_file(file):
     file_loader = UnstructuredFileLoader(file_path)
     docs = file_loader.load_and_split(text_splitter=splitter)
 
-    embeddings = OllamaEmbeddings(model="jinbora/deepseek-r1-Bllossom:8b")
+    model_name = "nomic-ai/nomic-embed-text-v2-moe"
+    model_kwargs = {'device': 'cuda'}
+    encode_kwargs = {'normalize_embeddings': True}
+
+    embeddings = HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs=model_kwargs,
+        encode_kwargs=encode_kwargs
+    )
 
     cached_embeddings = CacheBackedEmbeddings.from_bytes_store(embeddings, cache_dir)
     vectorstore = FAISS.from_documents(docs, cached_embeddings)
