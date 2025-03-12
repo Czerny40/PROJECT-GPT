@@ -46,7 +46,8 @@ def embed_file(file):
     file_loader = UnstructuredFileLoader(file_path)
     docs = file_loader.load_and_split(text_splitter=splitter)
 
-    model_name = "nomic-ai/nomic-embed-text-v2-moe"
+    # model_name = "nomic-ai/nomic-embed-text-v2-moe"
+    model_name = "dragonkue/snowflake-arctic-embed-l-v2.0-ko"
     model_kwargs = {'device': 'cuda'}
     encode_kwargs = {'normalize_embeddings': True}
 

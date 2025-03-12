@@ -16,3 +16,6 @@ def save_message(message, role):
 def load_chat_history():
     for message in st.session_state["messages"]:
         send_message(message["message"], message["role"], save=False)
+
+def save_memory(input, output):
+    st.session_state["memory"].save_context({"input": input}, {"output": output})

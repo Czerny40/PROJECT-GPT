@@ -7,11 +7,9 @@ def format_documents(docs):
 
 
 def create_text_splitter(chunk_size=1000, chunk_overlap=200):
-    return RecursiveCharacterTextSplitter(
+    return RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n"],
-        length_function=len,
     )
 
 
