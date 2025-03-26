@@ -15,15 +15,17 @@
 1. 업로드한 문서를 임베딩 & VectorStore 저장
 2. MMR 검색 알고리즘을 사용해 연관성과 다양성 모두 고려
 3. 실시간 답변 스트리밍(CallbackHandler)
+4. [배포버전](https://gpt-challenge-cnojcfovivvohk6ed6o7yq.streamlit.app/)
 ### PrivateGPT
 > 로컬 기반의 LLM과 자체 임베딩을 활용하여 로컬 환경에서도 Q&A가 가능하도록 구현
 1. HuggingFaceEmbeddings를 통해 상황에 따른 적절한 임베딩 모델 사용 및 임베딩 캐싱
 2. ChatOllama를 통해 원하는 로컬 모델을 지정하여 사용 가능
 ### QuizGPT
 > 문서나 위키피디아 내용을 기반으로 5문항의 객관식 퀴즈를 생성해주는 서비스
-1. Output parsers를 사용하여 일관된 형태의 문제 제공
+1. Output parsers를 사용하여 일관된 형태의 문제 제공(아래의 배포 버전에서는 Function Calling을 사용해 미리 정의된 JSON 스키마에 맞춰 응답 생성)
 2. Streamlit의 st.session_state를 사용해 캐싱 구현
-3. 정답 판별 로직 구현(토글을 통해 확인 가능)
+3. [배포버전](https://gpt-challenge-izyrfdqdbcsba4dyqrztcc.streamlit.app/) ([챌린지 3기 우수작 선정](https://nomadcoders.co/community/thread/10769))
+
 ### SiteGPT
 > 특정 사이트 맵(XML 형태의 사이트맵 URL 필요)을 로드하여 해당 사이트에 대한 Q&A를 제공하는 서비스
 1. SitemapLoader를 통해 웹페이지 텍스트 크롤링
