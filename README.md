@@ -10,7 +10,8 @@
 - 기타 AI/ML 라이브러리(yt_dlp, pydub, ffmpeg 등)
 
 ## 아키텍쳐
-![image](https://github.com/user-attachments/assets/384e4a95-beb6-462e-91d3-6050f12c14e9)
+![image](https://github.com/user-attachments/assets/90fca2fa-9547-43f7-bedb-6f1b8d54e958)
+
 
 
 ## 주요 기능
