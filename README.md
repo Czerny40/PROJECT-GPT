@@ -1,4 +1,6 @@
 ## LLM 기반 챗봇 서비스
+![image](https://github.com/user-attachments/assets/b677fc84-afc9-4208-9eb0-bc274b4321c9)
+
 - Langchain과 Streamlit, LLM을 이용해 문서 분석, 퀴즈 생성, 웹사이트 Q&A, 오디오·비디오 대본 분석등의 기능들을 구현했습니다.
 
 ## 기술 스택
