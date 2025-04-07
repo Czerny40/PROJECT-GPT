@@ -9,6 +9,10 @@
 - HuggingFace
 - 기타 AI/ML 라이브러리(yt_dlp, pydub, ffmpeg 등)
 
+## 아키텍쳐
+![image](https://github.com/user-attachments/assets/384e4a95-beb6-462e-91d3-6050f12c14e9)
+
+
 ## 주요 기능
 ### [DocumentGPT](https://velog.io/@kitkat/LangChain%EA%B3%BC-ChatGPT%EB%A5%BC-%ED%99%9C%EC%9A%A9%ED%95%9C-%EB%AC%B8%EC%84%9C-QA-%EC%8B%9C%EC%8A%A4%ED%85%9C-%EA%B5%AC%ED%98%84%ED%95%98%EA%B8%B0)
 > 업로드한 PDF, 텍스트, Word 문서를 기반으로 사용자의 질문에 관련된 답변을 생성해주는 서비스
